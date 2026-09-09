@@ -1,0 +1,46 @@
+{
+    "champion_model": "Neural Network (MLP)",
+    "champion_r2": 0.9871915681523117,
+    "leaderboard": [
+        {
+            "R2": 0.9787402155219356,
+            "RMSE_kW": 0.5941062899420073,
+            "MAE_kW": 0.3952428361774444,
+            "MAPE_percent": 5.362427031759271,
+            "Model": "XGBoost Regressor",
+            "Train_Time_s": 0.96
+        },
+        {
+            "R2": 0.9622955643260394,
+            "RMSE_kW": 0.7911902817217403,
+            "MAE_kW": 0.5228009169373462,
+            "MAPE_percent": 7.284761900388171,
+            "Model": "Random Forest",
+            "Train_Time_s": 3.163
+        },
+        {
+            "R2": 0.9791811574351996,
+            "RMSE_kW": 0.5879129304837386,
+            "MAE_kW": 0.39515255478308725,
+            "MAPE_percent": 5.457270462832026,
+            "Model": "HistGradientBoosting",
+            "Train_Time_s": 2.156
+        },
+        {
+            "R2": 0.8390969015946107,
+            "RMSE_kW": 1.634432257979979,
+            "MAE_kW": 1.1444986530202446,
+            "MAPE_percent": 17.5532467835618,
+            "Model": "Ridge Regression",
+            "Train_Time_s": 0.006
+        },
+        {
+            "R2": 0.9871915681523117,
+            "RMSE_kW": 0.46113990154080764,
+            "MAE_kW": 0.3212804415112012,
+            "MAPE_percent": 4.600955166670431,
+            "Model": "Neural Network (MLP)",
+            "Train_Time_s": 4.804
+        }
+    ]
+}
