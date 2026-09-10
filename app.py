@@ -17,5 +17,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 target_script = PROJECT_ROOT / "app" / "streamlit_app.py"
 
-if __name__ == "__main__" or "streamlit" in sys.modules:
-    runpy.run_path(str(target_script), run_name="__main__")
+if __name__ == "__main__":
+    import streamlit.runtime
+    if streamlit.runtime.exists():
+        runpy.run_path(str(target_script), run_name="__main__")
+    else:
+        from streamlit.web import cli as stcli
+        sys.argv = ["streamlit", "run", str(target_script)]
+        sys.exit(stcli.main())
