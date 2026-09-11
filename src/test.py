@@ -71,8 +71,10 @@ def load_test_dataset(processed_dir: str = "data/processed"):
     # Read the test features CSV into a pandas DataFrame
     test_df = pd.read_csv(test_csv_path)
     
-    # Separate input feature columns by dropping the target column
-    X_test = test_df.drop(columns=[TARGET_COLUMN])
+    # Separate input feature columns by dropping target columns to avoid leakage
+    target_cols = [TARGET_COLUMN, "Carbon_Emission_Rate_kgCO2e_hr", "Specific_Carbon_Emission_gCO2e_cm3"]
+    cols_to_drop = [c for c in target_cols if c in test_df.columns]
+    X_test = test_df.drop(columns=cols_to_drop)
     
     # Extract the target column values as the ground truth vector
     y_test = test_df[TARGET_COLUMN]
@@ -299,6 +301,52 @@ def generate_diagnostic_plots(
     fig.savefig(resid_plot_path, bbox_inches="tight")
     plt.close(fig)
     print(f"[PLOT] Residual distribution plot saved to: {resid_plot_path}")
+
+    # -------------------------------------------------------------------------
+    # 4. Carbon Emissions & Green Machining Diagnostic Plot
+    # -------------------------------------------------------------------------
+    raw_test_path = os.path.join(PROJECT_ROOT_DIR, "data", "raw", "machining_power_consumption_12k.csv")
+    if os.path.exists(raw_test_path):
+        df_raw = pd.read_csv(raw_test_path)
+        fig_carbon, axes_c = plt.subplots(1, 3, figsize=(18, 5), dpi=300)
+        
+        # Subplot 1: Carbon Emission vs. Power (Linear scaling across regional grids)
+        p_sample = np.linspace(2, 25, 50)
+        axes_c[0].plot(p_sample, p_sample * 0.475, label="Global Avg (0.475)", color="#2563EB", linewidth=2)
+        axes_c[0].plot(p_sample, p_sample * 0.708, label="India Grid (0.708)", color="#DC2626", linewidth=2)
+        axes_c[0].plot(p_sample, p_sample * 0.385, label="US Grid (0.385)", color="#D97706", linewidth=2)
+        axes_c[0].plot(p_sample, p_sample * 0.255, label="EU Grid (0.255)", color="#059669", linewidth=2)
+        axes_c[0].plot(p_sample, p_sample * 0.045, label="Renewable (0.045)", color="#10B981", linestyle="--", linewidth=2)
+        axes_c[0].set_title("Operational Carbon vs Electrical Power Demand", fontsize=11, fontweight="bold")
+        axes_c[0].set_xlabel("Predicted Power (kW)", fontsize=10)
+        axes_c[0].set_ylabel("Carbon Rate (kg CO2e / hr)", fontsize=10)
+        axes_c[0].legend(loc="upper left", fontsize=9)
+        axes_c[0].grid(True, linestyle=":", alpha=0.6)
+        
+        # Subplot 2: Carbon Footprint by Coolant Strategy
+        if "Carbon_Emission_Rate_kgCO2e_hr" in df_raw.columns:
+            cool_ce = df_raw.groupby("Coolant_Condition")["Carbon_Emission_Rate_kgCO2e_hr"].mean().reset_index()
+            axes_c[1].bar(cool_ce["Coolant_Condition"], cool_ce["Carbon_Emission_Rate_kgCO2e_hr"], color=["#10B981", "#3B82F6", "#F59E0B", "#EF4444"], edgecolor="black", alpha=0.85)
+            axes_c[1].set_title("Mean Carbon Emission Rate by Coolant Mode", fontsize=11, fontweight="bold")
+            axes_c[1].set_ylabel("Mean Carbon Rate (kg CO2e / hr)", fontsize=10)
+            axes_c[1].tick_params(axis="x", rotation=15)
+            for i, v in enumerate(cool_ce["Carbon_Emission_Rate_kgCO2e_hr"]):
+                axes_c[1].text(i, v + 0.05, f"{v:.2f}", ha="center", fontweight="bold", fontsize=9)
+                
+        # Subplot 3: Specific Carbon Emission (SCE) by Material
+        if "Specific_Carbon_Emission_gCO2e_cm3" in df_raw.columns:
+            mat_sce = df_raw.groupby("Workpiece_Material")["Specific_Carbon_Emission_gCO2e_cm3"].median().reset_index().sort_values(by="Specific_Carbon_Emission_gCO2e_cm3")
+            axes_c[2].barh(mat_sce["Workpiece_Material"], mat_sce["Specific_Carbon_Emission_gCO2e_cm3"], color="#6366F1", edgecolor="black", alpha=0.85)
+            axes_c[2].set_title("Median Specific Carbon Emission by Alloy", fontsize=11, fontweight="bold")
+            axes_c[2].set_xlabel("Specific Carbon (g CO2e / cm3)", fontsize=10)
+            for i, v in enumerate(mat_sce["Specific_Carbon_Emission_gCO2e_cm3"]):
+                axes_c[2].text(v + 0.05, i, f" {v:.2f}", va="center", fontweight="bold", fontsize=9)
+                
+        plt.tight_layout()
+        carbon_plot_path = os.path.join(full_figures_dir, "carbon_emission_analysis.png")
+        fig_carbon.savefig(carbon_plot_path, bbox_inches="tight")
+        plt.close(fig_carbon)
+        print(f"[PLOT] Carbon emission analysis plot saved to: {carbon_plot_path}")
 
 
 def main():

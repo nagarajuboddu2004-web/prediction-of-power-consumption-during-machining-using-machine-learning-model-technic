@@ -107,8 +107,11 @@ def generate_machining_dataset(num_samples: int = 12500, random_seed: int = 42) 
     p_feed = np.zeros(num_samples)
     p_aux = np.zeros(num_samples)
     p_cutting = np.zeros(num_samples)
+    cutting_temperature = np.zeros(num_samples)
     total_power = np.zeros(num_samples)
     specific_energy = np.zeros(num_samples)
+    carbon_emission_rate = np.zeros(num_samples)
+    specific_carbon = np.zeros(num_samples)
     
     for i in range(num_samples):
         op = operations[i]
@@ -264,6 +267,25 @@ def generate_machining_dataset(num_samples: int = 12500, random_seed: int = 42) 
         mrr_mm3_s = max(mrr[i] * 1000.0 / 60.0, 0.1)
         specific_energy[i] = (total_power[i] * 1000.0) / mrr_mm3_s
 
+        # 6. Thermo-Mechanical Cutting Zone Temperature (Boothroyd / Loewen-Shaw Formulation)
+        coolant_temp_factor = {"Dry": 1.00, "Flood Coolant": 0.58, "MQL (Min Lubrication)": 0.80, "Cryogenic (LN2)": 0.32}.get(clnt, 0.65)
+        mat_thermal_factor = {"Al 6061-T6 Aluminum": 0.50, "AISI 1045 Steel": 1.00, "AISI 304 Stainless Steel": 1.25, "Ti-6Al-4V Titanium": 1.55, "Inconel 718 Superalloy": 1.75}.get(mat, 1.0)
+        temp_rise = 125.0 * ((cutting_speed[i] / 100.0) ** 0.45) * ((feed_rate[i] / 0.15) ** 0.22) * mat_thermal_factor * coolant_temp_factor
+        wear_temp_boost = 1.0 + 1.25 * ((tool_wear[i] / 0.30) ** 1.15)
+        t_calc = 22.0 + temp_rise * wear_temp_boost * ((cutting_force[i] / 800.0) ** 0.28)
+        cutting_temperature[i] = np.clip(t_calc + np.random.normal(0.0, 8.0), 45.0, 1150.0)
+
+        # 7. Operational Carbon Emissions Accounting (Scope 2 Electricity + Cutting Fluid + Tool Wear Embodied Carbon)
+        grid_factor = 0.475  # kg CO2e / kWh (IEA Global Industrial Electricity Average)
+        ce_electrical = total_power[i] * grid_factor  # kg CO2e / hr
+        ce_fluid = {"Dry": 0.00, "MQL (Min Lubrication)": 0.08, "Flood Coolant": 0.45, "Cryogenic (LN2)": 0.65}.get(clnt, 0.35)
+        ce_tool = 0.05 * (1.0 + 1.25 * ((tool_wear[i] / 0.30) ** 1.15))  # Tool embodied lifecycle carbon rate
+        carbon_emission_rate[i] = ce_electrical + ce_fluid + ce_tool
+        
+        # Specific Carbon Emission (g CO2e / cm3 of material removed)
+        mrr_cm3_hr = max(mrr[i] * 60.0, 0.01)
+        specific_carbon[i] = (carbon_emission_rate[i] * 1000.0) / mrr_cm3_hr
+
     df = pd.DataFrame({
         "Operation_Type": operations,
         "Workpiece_Material": materials,
@@ -282,13 +304,16 @@ def generate_machining_dataset(num_samples: int = 12500, random_seed: int = 42) 
         "Coolant_Condition": coolants,
         "Coolant_Flow_Rate_Lpm": np.round(coolant_flow, 2),
         "Material_Removal_Rate_cm3_min": np.round(mrr, 3),
+        "Cutting_Temperature_C": np.round(cutting_temperature, 1),
         "Cutting_Force_Fc_N": np.round(cutting_force, 2),
         "Spindle_Power_kW": np.round(p_spindle, 3),
         "Feed_Power_kW": np.round(p_feed, 3),
         "Auxiliary_Power_kW": np.round(p_aux, 3),
         "Cutting_Power_kW": np.round(p_cutting, 3),
         "Power_Consumption_kW": np.round(total_power, 3),
-        "Specific_Energy_J_mm3": np.round(specific_energy, 2)
+        "Specific_Energy_J_mm3": np.round(specific_energy, 2),
+        "Carbon_Emission_Rate_kgCO2e_hr": np.round(carbon_emission_rate, 4),
+        "Specific_Carbon_Emission_gCO2e_cm3": np.round(specific_carbon, 3)
     })
     
     return df

@@ -263,7 +263,138 @@ def complete_kinematic_inputs(input_dict: dict) -> dict:
     if "Tool_Coating" not in d:
         d["Tool_Coating"] = "TiAlN"
         
+    # Default cutting temperature in Celsius if omitted (derived via Boothroyd thermo-mechanical formula)
+    if "Cutting_Temperature_C" not in d or d["Cutting_Temperature_C"] is None:
+        clnt = d.get("Coolant_Condition", "Flood Coolant")
+        mat = d.get("Workpiece_Material", "AISI 1045 Steel")
+        coolant_temp_factor = {"Dry": 1.00, "Flood Coolant": 0.58, "MQL (Min Lubrication)": 0.80, "Cryogenic (LN2)": 0.32}.get(clnt, 0.65)
+        mat_thermal_factor = {"Al 6061-T6 Aluminum": 0.50, "AISI 1045 Steel": 1.00, "AISI 304 Stainless Steel": 1.25, "Ti-6Al-4V Titanium": 1.55, "Inconel 718 Superalloy": 1.75}.get(mat, 1.0)
+        vb = float(d.get("Tool_Wear_VB_mm", 0.10))
+        wear_temp_boost = 1.0 + 1.25 * ((vb / 0.30) ** 1.15)
+        t_est = 22.0 + (125.0 * ((vc / 100.0) ** 0.45) * ((f / 0.15) ** 0.22) * mat_thermal_factor * coolant_temp_factor * wear_temp_boost)
+        d["Cutting_Temperature_C"] = round(float(np.clip(t_est, 45.0, 1100.0)), 1)
+
     return d
+
+
+def get_tool_wear_condition(tool_wear_vb_mm: float) -> dict:
+    """
+    Evaluates tool wear land width (VB) against ISO 3685 failure threshold standards.
+    Returns wear status description, severity level, and recommended maintenance action.
+    """
+    vb = float(tool_wear_vb_mm)
+    if vb < 0.10:
+        return {
+            "Wear_Stage": "Initial / Break-in Wear",
+            "VB_mm": vb,
+            "Condition_Status": "Pristine / Healthy Tool",
+            "ISO_Limit_Ratio_Percent": round(vb / 0.30 * 100.0, 1),
+            "Action": "Continue Normal Machining"
+        }
+    elif vb <= 0.20:
+        return {
+            "Wear_Stage": "Steady-State Normal Wear",
+            "VB_mm": vb,
+            "Condition_Status": "Stable Flank Wear",
+            "ISO_Limit_Ratio_Percent": round(vb / 0.30 * 100.0, 1),
+            "Action": "Nominal Operation - Monitor Surface Finish"
+        }
+    elif vb <= 0.30:
+        return {
+            "Wear_Stage": "Accelerated / Severe Wear",
+            "VB_mm": vb,
+            "Condition_Status": "Warning - Approaching Limit",
+            "ISO_Limit_Ratio_Percent": round(vb / 0.30 * 100.0, 1),
+            "Action": "Schedule Tool Indexing / Edge Replacement Soon"
+        }
+    else:
+        return {
+            "Wear_Stage": "Critical Failure / Chipping Zone",
+            "VB_mm": vb,
+            "Condition_Status": "CRITICAL DANGER - Exceeds ISO 3685 Limit (0.30 mm)",
+            "ISO_Limit_Ratio_Percent": round(vb / 0.30 * 100.0, 1),
+            "Action": "STOP IMMEDIATELY - Replace Cutter Edge"
+        }
+
+
+# Standard Regional Electrical Grid Carbon Emission Factors (kg CO2e / kWh)
+# Sources: International Energy Agency (IEA), US EPA eGRID, European Environment Agency (EEA), CEA India
+GRID_CARBON_FACTORS = {
+    "Global Average (0.475 kg/kWh)": 0.475,
+    "US National Grid (0.385 kg/kWh)": 0.385,
+    "European Union (0.255 kg/kWh)": 0.255,
+    "China Grid (0.581 kg/kWh)": 0.581,
+    "India Central Grid (0.708 kg/kWh)": 0.708,
+    "100% Renewable / Solar (0.045 kg/kWh)": 0.045
+}
+
+
+def calculate_carbon_emissions(
+    power_kw: float,
+    coolant: str = "Flood Coolant",
+    tool_wear_vb: float = 0.10,
+    mrr: float = 10.0,
+    grid_factor: float = 0.475,
+    cut_time_sec: float = 60.0
+) -> dict:
+    """
+    Computes comprehensive operational and life cycle carbon emissions (Scope 2 electricity,
+    coolant fluid lifecycle, tool wear embodied carbon, specific carbon emission, and part footprint).
+    """
+    # Electrical Scope 2 carbon emission rate (kg CO2e / hr)
+    ce_electrical_rate = power_kw * grid_factor
+    
+    # Cutting fluid lifecycle emission rate (kg CO2e / hr)
+    fluid_emissions = {
+        "Dry": 0.00,
+        "MQL (Min Lubrication)": 0.08,
+        "Flood Coolant": 0.45,
+        "Cryogenic (LN2)": 0.65
+    }
+    ce_fluid_rate = fluid_emissions.get(coolant, 0.35)
+    
+    # Tool insert embodied carbon rate (kg CO2e / hr) based on wear progression
+    ce_tool_rate = 0.05 * (1.0 + 1.25 * ((tool_wear_vb / 0.30) ** 1.15))
+    
+    # Total operational carbon emission rate (kg CO2e / hr)
+    total_ce_rate = ce_electrical_rate + ce_fluid_rate + ce_tool_rate
+    
+    # Per-part carbon emissions
+    part_hours = cut_time_sec / 3600.0
+    part_co2_kg = total_ce_rate * part_hours
+    part_co2_g = part_co2_kg * 1000.0
+    
+    # Specific Carbon Emission (SCE in g CO2e / cm3 of material removed)
+    mrr_cm3_hr = max(mrr * 60.0, 0.01)
+    sce_g_cm3 = (total_ce_rate * 1000.0) / mrr_cm3_hr
+    
+    # ESG Scope 2 rating category
+    if total_ce_rate < 1.5:
+        esg_rating = "Eco-Optimized (Green Tier)"
+        esg_badge = "[Low Carbon - Green]"
+    elif total_ce_rate <= 4.0:
+        esg_rating = "Moderate Footprint (Amber Tier)"
+        esg_badge = "[Moderate - Amber]"
+    else:
+        esg_rating = "Carbon-Intensive (Red Tier)"
+        esg_badge = "[High Carbon - Red]"
+        
+    return {
+        "Grid_Factor_kg_kWh": grid_factor,
+        "Electrical_Carbon_Rate_kg_hr": round(ce_electrical_rate, 4),
+        "Coolant_Carbon_Rate_kg_hr": round(ce_fluid_rate, 4),
+        "Fluid_Carbon_Rate_kg_hr": round(ce_fluid_rate, 4),
+        "Tool_Embodied_Carbon_Rate_kg_hr": round(ce_tool_rate, 4),
+        "Tool_Wear_Carbon_Rate_kg_hr": round(ce_tool_rate, 4),
+        "Total_Carbon_Rate_kg_hr": round(total_ce_rate, 4),
+        "Per_Part_Carbon_g": round(part_co2_g, 2),
+        "Part_Carbon_Footprint_g": round(part_co2_g, 2),
+        "Per_Part_Carbon_kg": round(part_co2_kg, 4),
+        "Part_Carbon_Footprint_kg": round(part_co2_kg, 4),
+        "Specific_Carbon_Emission_g_cm3": round(sce_g_cm3, 3),
+        "ESG_Rating": esg_rating,
+        "ESG_Badge": esg_badge
+    }
 
 
 def predict_power(
@@ -322,15 +453,58 @@ def predict_power(
     return np.clip(predictions, 0.5, 50.0)
 
 
-def compare_all_models(input_record: dict) -> pd.DataFrame:
+def predict_carbon_emission(
+    input_data,
+    grid_factor: float = 0.475,
+    cut_time_sec: float = 60.0,
+    model_name: str = "best"
+) -> dict:
     """
-    Runs the given input record through all three models and produces a comparison table.
+    Predicts active electrical power and calculates complete operational carbon emissions.
+    """
+    pred_kw = float(predict_power(input_data, model_name=model_name)[0])
+    
+    # Extract process attributes for full lifecycle carbon accounting
+    if isinstance(input_data, dict):
+        rec = input_data
+    elif isinstance(input_data, pd.DataFrame):
+        rec = input_data.iloc[0].to_dict()
+    elif isinstance(input_data, list):
+        rec = input_data[0]
+    else:
+        rec = {}
+        
+    clnt = rec.get("Coolant_Condition", "Flood Coolant")
+    vb = float(rec.get("Tool_Wear_VB_mm", 0.10))
+    mrr = float(rec.get("Material_Removal_Rate_cm3_min", 12.0))
+    
+    ce_metrics = calculate_carbon_emissions(
+        power_kw=pred_kw,
+        coolant=clnt,
+        tool_wear_vb=vb,
+        mrr=mrr,
+        grid_factor=grid_factor,
+        cut_time_sec=cut_time_sec
+    )
+    ce_metrics["Predicted_Power_kW"] = round(pred_kw, 3)
+    return ce_metrics
+
+
+def compare_all_models(input_record: dict, grid_factor: float = 0.475) -> pd.DataFrame:
+    """
+    Runs the given input record through all three models and produces a multi-model
+    comparison table displaying both Predicted Power (kW) and Carbon Emission Rate (kg CO2e/hr).
     """
     # Load pipeline
     pipeline = load_preprocessing_pipeline()
     
     # Load all 3 models
     all_models = load_all_trained_models()
+    
+    # Extract process attributes
+    clnt = input_record.get("Coolant_Condition", "Flood Coolant")
+    vb = float(input_record.get("Tool_Wear_VB_mm", 0.10))
+    mrr = float(input_record.get("Material_Removal_Rate_cm3_min", 12.0))
     
     # Dictionary to collect predictions
     preds_summary = []
@@ -339,10 +513,15 @@ def compare_all_models(input_record: dict) -> pd.DataFrame:
     for key, model_obj in all_models.items():
         formatted_name = key.replace("_", " ").title()
         pred_kw = predict_power(input_record, model=model_obj, pipeline=pipeline)[0]
+        ce_calc = calculate_carbon_emissions(float(pred_kw), coolant=clnt, tool_wear_vb=vb, mrr=mrr, grid_factor=grid_factor)
+        
         preds_summary.append({
             "Model Key": key,
             "Algorithm": formatted_name,
-            "Predicted Power (kW)": round(float(pred_kw), 3)
+            "Predicted Power (kW)": round(float(pred_kw), 3),
+            "Carbon Rate (kg CO2e/hr)": ce_calc["Total_Carbon_Rate_kg_hr"],
+            "Specific Carbon (g/cm3)": ce_calc["Specific_Carbon_Emission_g_cm3"],
+            "ESG Tier": ce_calc["ESG_Badge"]
         })
         
     # Return as DataFrame
@@ -366,6 +545,9 @@ def main():
     parser.add_argument("--wear", type=float, default=0.15, help="Tool flank wear VB (mm)")
     parser.add_argument("--coolant", type=str, default="Cryogenic (LN2)", help="Coolant condition")
     parser.add_argument("--coating", type=str, default="AlCrN", help="Tool coating")
+    parser.add_argument("--temp", type=float, default=None, help="Cutting zone temperature in C (auto-estimated if omitted)")
+    parser.add_argument("--grid", type=float, default=0.475, help="Grid emission factor in kg CO2e/kWh (default: 0.475 Global Average)")
+    parser.add_argument("--cut-time", type=float, default=60.0, help="Cutting cycle time per part in seconds (default: 60.0)")
     parser.add_argument("--model", type=str, default="compare", help="Model key ('linear_regression', 'decision_tree', 'random_forest', 'best', 'compare')")
     args = parser.parse_args()
     
@@ -383,27 +565,42 @@ def main():
         "Coolant_Condition": args.coolant,
         "Tool_Coating": args.coating
     }
+    if args.temp is not None:
+        sample["Cutting_Temperature_C"] = args.temp
     
     print("=" * 70)
-    print("      CNC MACHINING POWER PREDICTION - INFERENCE & LOADING (src/load.py)")
+    print("      CNC MACHINING POWER & CARBON PREDICTION (src/load.py)")
     print("=" * 70)
     print("\nInput Machining Parameters:")
     for k, v in sample.items():
         print(f"  {k:28s}: {v}")
         
+    # Tool Wear Health & Diagnostic Analysis
+    wear_diag = get_tool_wear_condition(args.wear)
+    print("\n--- Tool Wear Diagnostic Assessment (ISO 3685) ---")
+    print(f"  Flank Wear Land (VB)        : {wear_diag['VB_mm']:.3f} mm")
+    print(f"  Degradation Stage           : {wear_diag['Wear_Stage']}")
+    print(f"  Health Condition Status     : {wear_diag['Condition_Status']}")
+    print(f"  ISO 0.30mm Limit Utilized   : {wear_diag['ISO_Limit_Ratio_Percent']:.1f} %")
+    print(f"  Recommended Shop Action     : {wear_diag['Action']}")
+        
     if args.model == "compare":
         print("\n" + "-" * 70)
-        print("          MULTI-MODEL POWER PREDICTION COMPARISON")
+        print("     MULTI-MODEL POWER & CARBON EMISSION PREDICTION COMPARISON")
         print("-" * 70)
-        comparison_df = compare_all_models(sample)
+        comparison_df = compare_all_models(sample, grid_factor=args.grid)
         print(comparison_df.to_string(index=False))
         print("-" * 70)
     else:
-        pred = predict_power(sample, model_name=args.model)[0]
-        print("\n" + "=" * 50)
-        print(f"  Model Used:       {args.model}")
-        print(f"  Predicted Power:  {pred:.3f} kW")
-        print("=" * 50)
+        ce_res = predict_carbon_emission(sample, grid_factor=args.grid, cut_time_sec=args.cut_time, model_name=args.model)
+        print("\n" + "=" * 55)
+        print(f"  Model Used                 : {args.model}")
+        print(f"  Predicted Power Demand     : {ce_res['Predicted_Power_kW']:.3f} kW")
+        print(f"  Total Carbon Emission Rate : {ce_res['Total_Carbon_Rate_kg_hr']:.4f} kg CO2e/hr")
+        print(f"  Specific Carbon Emission   : {ce_res['Specific_Carbon_Emission_g_cm3']:.3f} g CO2e/cm3")
+        print(f"  Carbon Footprint per Part  : {ce_res['Per_Part_Carbon_g']:.2f} g CO2e/part ({args.cut_time}s cut)")
+        print(f"  Scope 2 ESG Rating         : {ce_res['ESG_Rating']}")
+        print("=" * 55)
         
     print("\n[OK] Inference finished successfully.")
 

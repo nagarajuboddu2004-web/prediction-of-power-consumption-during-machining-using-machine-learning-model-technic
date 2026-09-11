@@ -8,30 +8,30 @@
     "leaderboard": [
         {
             "Model": "Random Forest",
-            "R2": 0.9463,
-            "RMSE_kW": 0.9442,
-            "MAE_kW": 0.6327,
-            "MAPE_percent": 9.19,
-            "Max_Error_kW": 7.2361,
-            "Latency_ms_per_1k": 20.86
+            "R2": 0.9478,
+            "RMSE_kW": 0.9232,
+            "MAE_kW": 0.6035,
+            "MAPE_percent": 8.81,
+            "Max_Error_kW": 9.0995,
+            "Latency_ms_per_1k": 21.63
         },
         {
             "Model": "Decision Tree",
-            "R2": 0.9258,
-            "RMSE_kW": 1.1098,
-            "MAE_kW": 0.7509,
-            "MAPE_percent": 10.4,
-            "Max_Error_kW": 8.4446,
-            "Latency_ms_per_1k": 0.7
+            "R2": 0.9193,
+            "RMSE_kW": 1.1485,
+            "MAE_kW": 0.7554,
+            "MAPE_percent": 10.51,
+            "Max_Error_kW": 9.5406,
+            "Latency_ms_per_1k": 0.68
         },
         {
             "Model": "Linear Regression",
-            "R2": 0.8391,
-            "RMSE_kW": 1.6347,
-            "MAE_kW": 1.1449,
-            "MAPE_percent": 17.56,
-            "Max_Error_kW": 11.0322,
-            "Latency_ms_per_1k": 6.45
+            "R2": 0.8832,
+            "RMSE_kW": 1.3812,
+            "MAE_kW": 0.9412,
+            "MAPE_percent": 14.9,
+            "Max_Error_kW": 12.0171,
+            "Latency_ms_per_1k": 7.66
         }
     ]
 }

@@ -1,7 +1,6 @@
 {
     "champion_model": "Random Forest",
-    "champion_r2": 0.9463,
-    "champion_cv_r2": 0.9374,
+    "champion_cv_r2": 0.9454,
     "models_benchmarked": [
         "Linear Regression",
         "Decision Tree",
@@ -10,45 +9,36 @@
     "leaderboard": [
         {
             "Model": "Random Forest",
+            "R2": 0.9454,
             "Model_Type": "Ensemble Bagging",
-            "Fit_Time_s": 1.5867,
-            "R2": 0.9463,
-            "RMSE_kW": 0.9442,
-            "MAE_kW": 0.6327,
-            "MAPE_percent": 9.19,
-            "CV_R2_5Fold": 0.9374,
-            "Train_R2": 0.9845,
-            "Train_RMSE_kW": 0.5003,
-            "Train_MAE_kW": 0.3263,
-            "Train_MAPE_percent": 4.78
+            "Fit_Time_s": 0.8821,
+            "CV_R2_5Fold": 0.9454,
+            "Train_R2": 0.987,
+            "Train_RMSE_kW": 0.4567,
+            "Train_MAE_kW": 0.3083,
+            "Train_MAPE_percent": 4.53
         },
         {
             "Model": "Decision Tree",
+            "R2": 0.91,
             "Model_Type": "Non-Linear Decision Tree",
-            "Fit_Time_s": 17.4306,
-            "R2": 0.9258,
-            "RMSE_kW": 1.1098,
-            "MAE_kW": 0.7509,
-            "MAPE_percent": 10.40,
-            "CV_R2_5Fold": 0.9119,
-            "Train_R2": 0.9819,
-            "Train_RMSE_kW": 0.5395,
-            "Train_MAE_kW": 0.3409,
-            "Train_MAPE_percent": 4.61
+            "Fit_Time_s": 10.0363,
+            "CV_R2_5Fold": 0.91,
+            "Train_R2": 0.9847,
+            "Train_RMSE_kW": 0.4947,
+            "Train_MAE_kW": 0.3204,
+            "Train_MAPE_percent": 4.37
         },
         {
             "Model": "Linear Regression",
+            "R2": 0.8924,
             "Model_Type": "Linear / Parametric",
-            "Fit_Time_s": 0.0254,
-            "R2": 0.8391,
-            "RMSE_kW": 1.6347,
-            "MAE_kW": 1.1449,
-            "MAPE_percent": 17.56,
-            "CV_R2_5Fold": 0.8394,
-            "Train_R2": 0.8408,
-            "Train_RMSE_kW": 1.6012,
-            "Train_MAE_kW": 1.1141,
-            "Train_MAPE_percent": 17.40
+            "Fit_Time_s": 0.0365,
+            "CV_R2_5Fold": 0.8924,
+            "Train_R2": 0.8934,
+            "Train_RMSE_kW": 1.3059,
+            "Train_MAE_kW": 0.9169,
+            "Train_MAPE_percent": 14.48
         }
     ]
 }

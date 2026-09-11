@@ -72,7 +72,9 @@ REQUIRED_DATASET_COLUMNS = [
     "Coolant_Flow_Rate_Lpm",           # Lubricant volumetric flow rate in liters/min
     "Tool_Coating",                    # Thin film coating type (TiAlN, AlCrN, etc.)
     "Material_Removal_Rate_cm3_min",   # Volumetric chip removal rate in cm^3/min
-    "Power_Consumption_kW"             # Target active electrical power draw in kilowatts
+    "Cutting_Temperature_C",           # Cutting zone thermo-mechanical temperature in degrees Celsius
+    "Power_Consumption_kW",            # Target active electrical power draw in kilowatts
+    "Carbon_Emission_Rate_kgCO2e_hr"   # Total carbon emission rate in kg CO2e per hour
 ]
 
 
@@ -110,6 +112,11 @@ def verify_dataset_integrity(df: pd.DataFrame) -> bool:
     if (df["Cutting_Speed_vc_mpm"] <= 0).any():
         # Raise an exception if non-positive cutting speed is detected
         raise ValueError("Integrity Error: Non-positive cutting speed values detected.")
+
+    # Check that carbon emissions are non-negative physical values
+    if (df["Carbon_Emission_Rate_kgCO2e_hr"] < 0).any():
+        # Raise an exception if negative carbon emission rate is detected
+        raise ValueError("Integrity Error: Negative carbon emission values detected.")
     
     # Print confirmation that all integrity checks passed
     print(f"[OK] Integrity checks passed: {len(df):,} samples, {len(df.columns)} columns, zero nulls.")

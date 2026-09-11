@@ -100,14 +100,18 @@ def load_training_and_testing_data(
     # Read testing features DataFrame from disk
     test_df = pd.read_csv(test_features_path)
     
-    # Separate input training features by dropping the target column
-    X_train = train_df.drop(columns=[TARGET_COLUMN])
+    # Separate input training features by dropping target columns to avoid data leakage
+    target_cols = [TARGET_COLUMN, "Carbon_Emission_Rate_kgCO2e_hr", "Specific_Carbon_Emission_gCO2e_cm3"]
+    cols_to_drop = [c for c in target_cols if c in train_df.columns]
+    
+    # Input feature matrix X_train (strictly 35 features)
+    X_train = train_df.drop(columns=cols_to_drop)
     
     # Extract target values for training
     y_train = train_df[TARGET_COLUMN]
     
-    # Separate input testing features by dropping the target column
-    X_test = test_df.drop(columns=[TARGET_COLUMN])
+    # Separate input testing features by dropping target columns
+    X_test = test_df.drop(columns=cols_to_drop)
     
     # Extract target values for testing
     y_test = test_df[TARGET_COLUMN]
@@ -374,12 +378,9 @@ def save_trained_models(
         # Build a clean leaderboard dictionary record for this model
         record = {
             "Model": model_name,
+            "R2": cv_r2,
             "Model_Type": info["model_type"],
             "Fit_Time_s": info["fit_time_seconds"],
-            "R2": cv_r2,
-            "RMSE_kW": info["train_metrics"]["RMSE_kW"],
-            "MAE_kW": info["train_metrics"]["MAE_kW"],
-            "MAPE_percent": info["train_metrics"]["MAPE_percent"],
             "CV_R2_5Fold": cv_r2,
             "Train_R2": info["train_metrics"]["R2"],
             "Train_RMSE_kW": info["train_metrics"]["RMSE_kW"],
@@ -416,7 +417,6 @@ def save_trained_models(
     # Construct complete leaderboard metadata dictionary
     leaderboard_payload = {
         "champion_model": champion_name,
-        "champion_r2": best_cv_r2,
         "champion_cv_r2": best_cv_r2,
         "models_benchmarked": list(trained_artifacts.keys()),
         "leaderboard": leaderboard_records

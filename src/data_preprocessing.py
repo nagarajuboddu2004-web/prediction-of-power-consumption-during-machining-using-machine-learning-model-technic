@@ -27,6 +27,7 @@ NUMERICAL_FEATURES = [
     "Tool_Diameter_mm",
     "Number_of_Flutes",
     "Tool_Wear_VB_mm",
+    "Cutting_Temperature_C",
     "Rake_Angle_deg",
     "Cutting_Speed_vc_mpm",
     "Spindle_Speed_RPM",
@@ -59,6 +60,17 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     
     # 4. Normalized Tool Wear relative to tool diameter
     df["Wear_to_Diameter_Ratio"] = df["Tool_Wear_VB_mm"] / (df["Tool_Diameter_mm"] + 1e-4)
+
+    # 5. Thermo-Mechanical Wear Interaction: Cutting Temperature x Flank Wear Land VB
+    # Physical basis: Higher cutting temperatures accelerate diffusion wear, while flank rubbing elevates temperature
+    if "Cutting_Temperature_C" in df.columns:
+        df["Wear_x_Temperature"] = df["Tool_Wear_VB_mm"] * df["Cutting_Temperature_C"]
+    else:
+        df["Wear_x_Temperature"] = df["Tool_Wear_VB_mm"] * 300.0
+
+    # 6. Tertiary Rubbing Zone Friction Power Index
+    # Physical basis: Frictional work on flank land: P_fric ~ mu * Hardness * VB * vc
+    df["Wear_Friction_Index"] = df["Tool_Wear_VB_mm"] * df["Cutting_Speed_vc_mpm"] * (df["Material_Hardness_HB"] / 100.0)
     
     return df
 
@@ -71,10 +83,11 @@ def get_all_feature_names():
         "Speed_x_Feed",
         "Depth_Ratio",
         "MRR_per_Flute",
-        "Wear_to_Diameter_Ratio"
+        "Wear_to_Diameter_Ratio",
+        "Wear_x_Temperature",
+        "Wear_Friction_Index"
     ]
 
-    
     all_numerical = NUMERICAL_FEATURES + engineered_numerical
     return CATEGORICAL_FEATURES, all_numerical
 
@@ -145,10 +158,14 @@ def prepare_and_split_data(
     # Save processed numpy / csv
     train_df_processed = pd.DataFrame(X_train_trans, columns=transformed_feature_names)
     train_df_processed[TARGET_COLUMN] = y_train.values
+    if "Carbon_Emission_Rate_kgCO2e_hr" in df_raw.columns:
+        train_df_processed["Carbon_Emission_Rate_kgCO2e_hr"] = df_raw.loc[X_train.index, "Carbon_Emission_Rate_kgCO2e_hr"].values
     train_df_processed.to_csv(os.path.join(output_dir, "train_features.csv"), index=False)
     
     test_df_processed = pd.DataFrame(X_test_trans, columns=transformed_feature_names)
     test_df_processed[TARGET_COLUMN] = y_test.values
+    if "Carbon_Emission_Rate_kgCO2e_hr" in df_raw.columns:
+        test_df_processed["Carbon_Emission_Rate_kgCO2e_hr"] = df_raw.loc[X_test.index, "Carbon_Emission_Rate_kgCO2e_hr"].values
     test_df_processed.to_csv(os.path.join(output_dir, "test_features.csv"), index=False)
     
     # Save preprocessor
@@ -160,7 +177,7 @@ def prepare_and_split_data(
     metadata = {
         "raw_categorical_features": cat_cols,
         "raw_numerical_features": NUMERICAL_FEATURES,
-        "engineered_features": ["Speed_x_Feed", "Depth_Ratio", "MRR_per_Flute", "Wear_to_Diameter_Ratio"],
+        "engineered_features": ["Speed_x_Feed", "Depth_Ratio", "MRR_per_Flute", "Wear_to_Diameter_Ratio", "Wear_x_Temperature", "Wear_Friction_Index"],
         "all_input_features": feature_cols,
         "transformed_feature_names": transformed_feature_names,
         "target_column": TARGET_COLUMN,
