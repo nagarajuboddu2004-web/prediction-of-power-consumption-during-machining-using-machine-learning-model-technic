@@ -187,28 +187,37 @@ streamlit run app/streamlit_app.py
 ```
 
 ### Key Features of the Dashboard:
-1. **⚡ Real-Time Power Prediction**:
-   - Interactive sliders for Cutting Speed ($v_c$), Feed Rate ($f$), Axial Depth ($a_p$), Radial Depth ($a_e$), and Tool Flank Wear ($VB$).
-   - Live instantaneous active power (kW) estimation.
-   - Specific Energy Consumption ($SEC$) in $\text{J/mm}^3$.
-   - Operating regime classification (Light Load / Eco, Moderate, Heavy Roughing).
-   - Estimated hourly electricity cost ($/hr).
-   - Pie chart showing power breakdown (Shearing, Spindle friction, Coolant pump, Feed axes).
+1. **🧭 Redesigned Normal Sidebar Navigation**:
+   - Clean dropdown selectbox (`st.sidebar.selectbox`) for easy, clutter-free page switching (no bulky radio buttons).
+   - Real-time status tags and one-click direct download of the complete Word Documentation Guide (`.docx`).
 
-2. **📥 Dataset Explorer & CSV Download**:
+2. **⚡ Real-Time Power Prediction & Power Gauge**:
+   - Interactive sliders for Cutting Speed ($v_c$), Feed Rate ($f$), Axial Depth ($a_p$), Radial Depth ($a_e$), and Tool Flank Wear ($VB$).
+   - Dynamic Plotly **Active Power Speedometer Gauge Meter** with color-coded safety zones (Green: Light <5kW, Blue: Nominal 5-12kW, Amber: Heavy, Red: Overload >18kW).
+   - Interactive Plotly Donut Chart showing power distribution (Shearing, Spindle friction, Coolant pump, Feed drives).
+   - Specific Energy Consumption ($SEC$) in $\text{J/mm}^3$ and real-time operating cost calculation ($/hr).
+
+3. **📈 Interactive Visualizations & Data Analytics (NEW)**:
+   - **Pie & Donut Charts**: Subsystem power distribution, Workpiece Alloy share, Operation type share, Coolant strategy distribution.
+   - **Kinematic Scatter & Bubble Plots**: Material Removal Rate (MRR) vs. Active Power ($P_{\text{total}}$), Cutting Speed vs. Power, Spindle Speed vs. Spindle Friction Power.
+   - **Bar Charts & Comparisons**: Average power across materials & operations, Specific Energy Consumption ($SEC$) by alloy, and cross-algorithm $R^2$ benchmarks.
+   - **Correlation Matrix Heatmap & Boxplots**: Pearson correlation matrix across kinematic variables, and power distribution boxplots across tool wear degradation regimes.
+
+4. **📥 Dataset Explorer & CSV Download**:
    - Direct one-click **"📥 Download Full Dataset as CSV (12,500+ Rows)"** button.
    - Dynamic multi-select filters by material, operation, and coolant.
    - Interactive data table and descriptive statistics.
 
-3. **📊 Model Benchmarking & Diagnostics**:
+5. **📊 Model Benchmarking & Diagnostics**:
    - Live model leaderboard table highlighting champion scores.
-   - Tabs displaying high-resolution diagnostic plots.
+   - Tabs displaying high-resolution diagnostic plots (Actual vs Predicted, Residuals, Feature Importances).
 
-4. **🔬 Parameter Sensitivity Simulation**:
-   - What-If curve generator: dynamically simulates how power responds when sweeping cutting speed, feed rate, or tool wear across alloy grades.
+6. **🔬 Parameter Sensitivity Simulation**:
+   - Interactive multi-curve Plotly line chart comparing all 5 materials simultaneously across sweeps of cutting speed, feed rate, depth of cut, or tool wear.
 
-5. **📖 Machining Physics & Formulas**:
-   - Embedded LaTeX equations for Kienzle forces, specific cutting energy, and kinematic derivations.
+7. **📑 System Documentation & Algorithm Guide**:
+   - Complete technical breakdowns for all 5 algorithms (MLP, HistGBM, XGBoost, Random Forest, Ridge).
+   - One-click download buttons for the comprehensive `.docx` project report and algorithm guide.
 
 ---
 

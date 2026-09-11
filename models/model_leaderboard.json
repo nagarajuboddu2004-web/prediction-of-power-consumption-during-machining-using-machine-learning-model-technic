@@ -1,46 +1,54 @@
 {
-    "champion_model": "Neural Network (MLP)",
-    "champion_r2": 0.9871915681523117,
+    "champion_model": "Random Forest",
+    "champion_r2": 0.9463,
+    "champion_cv_r2": 0.9374,
+    "models_benchmarked": [
+        "Linear Regression",
+        "Decision Tree",
+        "Random Forest"
+    ],
     "leaderboard": [
         {
-            "R2": 0.9787402155219356,
-            "RMSE_kW": 0.5941062899420073,
-            "MAE_kW": 0.3952428361774444,
-            "MAPE_percent": 5.362427031759271,
-            "Model": "XGBoost Regressor",
-            "Train_Time_s": 0.96
-        },
-        {
-            "R2": 0.9622955643260394,
-            "RMSE_kW": 0.7911902817217403,
-            "MAE_kW": 0.5228009169373462,
-            "MAPE_percent": 7.284761900388171,
             "Model": "Random Forest",
-            "Train_Time_s": 3.163
+            "Model_Type": "Ensemble Bagging",
+            "Fit_Time_s": 1.5867,
+            "R2": 0.9463,
+            "RMSE_kW": 0.9442,
+            "MAE_kW": 0.6327,
+            "MAPE_percent": 9.19,
+            "CV_R2_5Fold": 0.9374,
+            "Train_R2": 0.9845,
+            "Train_RMSE_kW": 0.5003,
+            "Train_MAE_kW": 0.3263,
+            "Train_MAPE_percent": 4.78
         },
         {
-            "R2": 0.9791811574351996,
-            "RMSE_kW": 0.5879129304837386,
-            "MAE_kW": 0.39515255478308725,
-            "MAPE_percent": 5.457270462832026,
-            "Model": "HistGradientBoosting",
-            "Train_Time_s": 2.156
+            "Model": "Decision Tree",
+            "Model_Type": "Non-Linear Decision Tree",
+            "Fit_Time_s": 17.4306,
+            "R2": 0.9258,
+            "RMSE_kW": 1.1098,
+            "MAE_kW": 0.7509,
+            "MAPE_percent": 10.40,
+            "CV_R2_5Fold": 0.9119,
+            "Train_R2": 0.9819,
+            "Train_RMSE_kW": 0.5395,
+            "Train_MAE_kW": 0.3409,
+            "Train_MAPE_percent": 4.61
         },
         {
-            "R2": 0.8390969015946107,
-            "RMSE_kW": 1.634432257979979,
-            "MAE_kW": 1.1444986530202446,
-            "MAPE_percent": 17.5532467835618,
-            "Model": "Ridge Regression",
-            "Train_Time_s": 0.006
-        },
-        {
-            "R2": 0.9871915681523117,
-            "RMSE_kW": 0.46113990154080764,
-            "MAE_kW": 0.3212804415112012,
-            "MAPE_percent": 4.600955166670431,
-            "Model": "Neural Network (MLP)",
-            "Train_Time_s": 4.804
+            "Model": "Linear Regression",
+            "Model_Type": "Linear / Parametric",
+            "Fit_Time_s": 0.0254,
+            "R2": 0.8391,
+            "RMSE_kW": 1.6347,
+            "MAE_kW": 1.1449,
+            "MAPE_percent": 17.56,
+            "CV_R2_5Fold": 0.8394,
+            "Train_R2": 0.8408,
+            "Train_RMSE_kW": 1.6012,
+            "Train_MAE_kW": 1.1141,
+            "Train_MAPE_percent": 17.40
         }
     ]
 }
